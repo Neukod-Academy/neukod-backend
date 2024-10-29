@@ -7,16 +7,20 @@ import (
 	"net/http"
 )
 
+//HTTP
+
 type HttpResponseBody struct {
 	Status  int
 	Message string
 	Data    interface{}
 }
 
-func (res HttpResponseBody) UpdateHttpResponse(writer http.ResponseWriter, newStatus int, newData interface{}) {
+func (res HttpResponseBody) UpdateHttpResponse(writer http.ResponseWriter) {
+	writer.Header().Set("Content-Type", "application/json")
 	body := HttpResponseBody{
-		Status: newStatus,
-		Data:   newData,
+		Status:  res.Status,
+		Message: res.Message,
+		Data:    res.Data,
 	}
 	byteBody, err := json.Marshal(body)
 	if err != nil {
