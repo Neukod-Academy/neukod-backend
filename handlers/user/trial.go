@@ -12,7 +12,7 @@ import (
 )
 
 func NewTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 	res := utils.HttpResponseBody{
@@ -44,7 +44,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 }
 
 func ConfirmTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 
@@ -52,7 +52,7 @@ func ConfirmTrial(w http.ResponseWriter, r *http.Request) error {
 }
 
 func EditTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "PUT" {
+	if r.Method != http.MethodPut {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 
@@ -60,7 +60,7 @@ func EditTrial(w http.ResponseWriter, r *http.Request) error {
 }
 
 func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "DELETE" {
+	if r.Method != http.MethodDelete {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 
