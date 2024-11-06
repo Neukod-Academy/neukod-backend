@@ -29,7 +29,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to add a new trial session"
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	}
 
 	isAllowed := false
@@ -44,7 +44,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusBadRequest
 		res.Message = "This course is still unavailable"
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	}
 
 	db := new(utils.Mongo)
@@ -52,7 +52,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to create a client to the database"
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	}
 
 	defer db.CloseClientDB()
@@ -64,23 +64,26 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to add a new trial session"
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	}
 
 	res.Data = newTrial
 	res.UpdateHttpResponse(w)
+	return nil
 }
 
 func ConfirmTrial(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "POST" {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
+	return nil
 }
 
 func EditTrial(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "PUT" {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
+	return nil
 }
 
 func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
@@ -102,7 +105,7 @@ func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Message = "Failed to connect to the database"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	}
 
 	col := db.Client.Database("Neukod").Collection("Trial")
@@ -113,14 +116,15 @@ func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Message = "Failed to delete the data"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	} else if delRes.DeletedCount < 1 {
 		res.Status = http.StatusNotFound
 		res.Message = "No document found to be deleted"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
-		return
+		return err
 	}
 	res.Data = TrialId
 	res.UpdateHttpResponse(w)
+	return nil
 }
