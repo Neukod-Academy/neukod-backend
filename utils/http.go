@@ -11,7 +11,7 @@ import (
 
 type HttpResponseBody struct {
 	Status  int
-	Message string
+	Message interface{}
 	Data    interface{}
 }
 

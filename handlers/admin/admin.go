@@ -39,7 +39,6 @@ func CreateContent(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
 }
 
 func DeleteContent(w http.ResponseWriter, r *http.Request) {

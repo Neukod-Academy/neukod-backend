@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 )
 
 func NewTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 
@@ -22,6 +23,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		Message: "Trial has been booked, let us reach you directly for the update",
 		Data:    nil,
 	}
+
 	var newTrial models.Trial
 
 	newTrial, err := utils.HttpReqReader[models.Trial](r)
@@ -31,20 +33,26 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.UpdateHttpResponse(w)
 		return err
 	}
+	if err := newTrial.CheckIfEmpty(); len(err) != 0 {
+		res.Status = http.StatusBadRequest
+		res.Message = err
+		res.UpdateHttpResponse(w)
+		return fmt.Errorf("some field(s) are not filled yet")
+	}
 
-	isAllowed := false
+	isTheCourseAllowed := false
 	for _, course := range models.TrialList {
 		if newTrial.Course == course {
-			isAllowed = true
+			isTheCourseAllowed = true
 			continue
 		}
 	}
 
-	if !isAllowed {
+	if !isTheCourseAllowed {
 		res.Status = http.StatusBadRequest
 		res.Message = "This course is still unavailable"
 		res.UpdateHttpResponse(w)
-		return err
+		return fmt.Errorf(res.Message.(string))
 	}
 
 	db := new(utils.Mongo)
@@ -52,7 +60,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to create a client to the database"
 		res.UpdateHttpResponse(w)
-		return err
+		return fmt.Errorf(res.Message.(string))
 	}
 
 	defer db.CloseClientDB()
@@ -64,7 +72,7 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to add a new trial session"
 		res.UpdateHttpResponse(w)
-		return err
+		return fmt.Errorf(res.Message.(string))
 	}
 
 	res.Data = newTrial
@@ -72,22 +80,30 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func ShowTrial(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
+	}
+
+	return nil
+}
+
 func ConfirmTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 	return nil
 }
 
 func EditTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "PUT" {
+	if r.Method != http.MethodPut {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 	return nil
 }
 
 func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != "DELETE" {
+	if r.Method != http.MethodDelete {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
 

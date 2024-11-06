@@ -25,9 +25,9 @@ type StudentSummary struct {
 
 type StudentTrial struct {
 	Name       string `json:"name" bson:"name"`
-	Grade      uint8  `json:"grade" bson:"grade"`
+	Age        uint8  `json:"age" bson:"age"`
 	Country    string `json:"country" bson:"country"`
-	Experience string `json:"exp" bson:"exp"`
+	Experience uint8  `json:"exp" bson:"exp"`
 }
 
 type Parent struct {
