@@ -2,9 +2,11 @@ package session
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
+	"github.com/Neukod-Academy/neukod-backend/middleware"
 	"github.com/Neukod-Academy/neukod-backend/models"
 	"github.com/Neukod-Academy/neukod-backend/pkg/env"
 	"github.com/Neukod-Academy/neukod-backend/utils"
@@ -24,6 +26,58 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 		Message: "Failed to create a session",
 		Data:    nil,
 	}
+	loginCred, err := utils.HttpReqReader[models.UserLogin](r)
+	if err != nil {
+		res.Message = "Unable while reading the login request credential"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	db := new(utils.Mongo)
+	if err := db.CreateClient(env.MONGO_URI); err != nil {
+		res.Message = "ERROR: failed to create database client"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	coll := db.Client.Database("Neukod").Collection("Users")
+	var stored models.User
+	if err := coll.FindOne(db.Context, bson.M{"username": loginCred.Username}, options.FindOne()).Decode(&stored); err != nil {
+		if err == mongo.ErrNoDocuments {
+			res.Status = http.StatusNotFound
+			res.Message = "Unable to find this credential or still not registered"
+			res.UpdateHttpResponse(w)
+			return
+		}
+		res.Message = "ERROR: failed to create database client"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	log.Println(loginCred.Password)
+	log.Println(stored.Password)
+	if err := bcrypt.CompareHashAndPassword([]byte(stored.Password), []byte(loginCred.Password)); err != nil {
+		res.Message = "ERROR: failed while validating the user password"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	cookie := &http.Cookie{}
+
+	if cookie.Value == "" {
+		newToken, err := middleware.CreateToken(loginCred.Username)
+		if err != nil {
+			res.Message = "ERROR: failed to create session cookie"
+			res.UpdateHttpResponse(w)
+			return
+		}
+		cookie = &http.Cookie{
+			Name:     "Session",
+			Value:    newToken,
+			Expires:  time.Now().Add(24 * time.Hour),
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+	}
+
+	res.Status = http.StatusCreated
+	res.Message = "Success to create a session"
 	res.UpdateHttpResponse(w)
 }
 
@@ -57,7 +111,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	db := new(utils.Mongo)
 	if err := db.CreateClient(env.MONGO_URI); err != nil {
-		res.Message = "Failed to create database client"
+		res.Message = "ERROR: failed to create database client"
 		res.UpdateHttpResponse(w)
 		return
 	}
@@ -111,7 +165,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	res.Status = http.StatusOK
+	res.Status = http.StatusCreated
 	res.Message = "Success to add a new user"
 	res.Data = newUser
 	res.UpdateHttpResponse(w)
