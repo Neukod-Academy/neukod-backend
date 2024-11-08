@@ -6,6 +6,7 @@ import (
 
 	"github.com/Neukod-Academy/neukod-backend/handlers/session"
 	"github.com/Neukod-Academy/neukod-backend/handlers/user"
+	"github.com/Neukod-Academy/neukod-backend/middleware"
 	"github.com/Neukod-Academy/neukod-backend/pkg/env"
 )
 
@@ -14,9 +15,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome to the home page"))
 	})
-
 	http.HandleFunc("/login", session.CreateSession)
-	http.HandleFunc("/logout", session.DropSession)
 	http.HandleFunc("/v1/trialclass", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
@@ -32,7 +31,7 @@ func main() {
 		case http.MethodPost:
 			session.CreateAccount(w, r)
 		case http.MethodGet:
-			session.ShowAccount(w, r)
+			middleware.AuthMiddleware(session.ShowAccount)(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}

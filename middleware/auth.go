@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -13,6 +14,30 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
+
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("Session")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				http.Error(w, "Cookie not found", http.StatusUnauthorized)
+				return
+			} else {
+				http.Error(w, "Unable to retrieving the cookie", http.StatusUnauthorized)
+				return
+			}
+		}
+		log.Println(cookie.Value)
+		tokenString := cookie.Value
+		claims, err := ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user", claims)
+		next(w, r.WithContext(ctx))
+	})
+}
 
 func getRole(username string) (string, error) {
 	db := new(utils.Mongo)
@@ -31,14 +56,15 @@ func CreateToken(username string) (string, error) {
 		return "", err
 	}
 	mapClaims := jwt.MapClaims{
-		"iss": "neukod-backend",
-		"sub": username,
-		"aud": role,
-		"exp": time.Now().Add(48 * time.Hour).Unix(),
-		"iat": time.Now().Unix(),
+		"iss":  "neukod-backend",
+		"sub":  username,
+		"role": role,
+		"exp":  time.Now().Add(48 * time.Hour).Unix(),
+		"iat":  time.Now().Unix(),
 	}
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, mapClaims)
-	if generatedToken, err := claims.SignedString(env.SECRET); err != nil {
+	SECRET := []byte(env.SECRET)
+	if generatedToken, err := claims.SignedString(SECRET); err != nil {
 		return "", err
 	} else {
 		return generatedToken, nil
@@ -50,7 +76,8 @@ func ValidateToken(tokenString string) (jwt.MapClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return env.SECRET, nil
+		SECRET := []byte(env.SECRET)
+		return SECRET, nil
 	}); err != nil {
 		return nil, err
 	} else {
@@ -59,28 +86,4 @@ func ValidateToken(tokenString string) (jwt.MapClaims, error) {
 		}
 		return nil, fmt.Errorf("invalid token")
 	}
-}
-
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie("jwt")
-			if err != nil {
-				if err == http.ErrNoCookie {
-					http.Error(w, "Cookie not found", http.StatusUnauthorized)
-					return
-				} else {
-					http.Error(w, "Unable to retrieving the cookie", http.StatusUnauthorized)
-					return
-				}
-			}
-			tokenString := cookie.Value
-			claims, err := ValidateToken(tokenString)
-			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-			ctx := context.WithValue(r.Context(), "user", claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
 }

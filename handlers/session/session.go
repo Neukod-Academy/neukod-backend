@@ -10,6 +10,7 @@ import (
 	"github.com/Neukod-Academy/neukod-backend/models"
 	"github.com/Neukod-Academy/neukod-backend/pkg/env"
 	"github.com/Neukod-Academy/neukod-backend/utils"
+	"github.com/golang-jwt/jwt"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -175,6 +176,19 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodGet {
 		http.Error(w, "This method is not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	userData, ok := r.Context().Value("user").(jwt.MapClaims)
+	if !ok {
+		http.Error(w, "Failed conversion the claims", http.StatusInternalServerError)
+		return
+	}
+	role, ok := userData["role"].(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if role != "admin" {
+		http.Error(w, "Unauthorized: this account is not belong to the authorized role", http.StatusUnauthorized)
 		return
 	}
 	res := utils.HttpResponseBody{
