@@ -1,0 +1,401 @@
+openapi: '3.0.3'
+info:
+  title: Neukod Back-End API Specification
+  description: "Neukod Academy Back-End services"
+  version: '1.0.0'
+  contact:
+    name: Neukod Academy
+    email: neukod.academy@gmail.com
+servers:
+  - url: http://localhost:{port}/{basePath}
+    description: Local development server
+    variables:
+      port:
+        default: '8002'
+      basePath:
+        default: v1
+paths:
+  /:
+    get:
+      summary: Get welcome message
+      description: Returns a welcome message on the home page.
+      operationId: getIndex
+      tags:
+        - Index
+      responses:
+        '200':
+          description: Successful response with a welcome message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example: 
+                status: 200
+                message: Welcome to the home page.
+                data: null
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+  /login:
+    post:
+      summary: create a user session to access some protected resources
+      description: Returns a session cookie
+      operationId: CreateSession
+      tags:
+        - Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginUser'
+      responses:
+        '201':
+          description: Successful to create a session
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example: 
+                status: 201
+                message: Success to create a session
+                data: null
+          headers:
+            Set-Cookie:
+              description: Session token cookie
+              schema: 
+                type: string
+                example: Session=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzE0Njc3NzgsImlhdCI6MTczMTI5NDk3OCwiaXNzIjoibmV1a29kLWJhY2tlbmQiLCJyb2xlIjoiYWRtaW4iLCJzdWIiOiJhZG1pbiJ9.EspxECKRA5rySTMMrrCsLMLAN-j5eu-T_-dE-hC2lLM; Expires=Tue, 12 Nov 2024 03:16:18 GMT; HttpOnly
+              required: true
+        '404':
+          description: The credential is not found
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 404
+                message: Unable to find this credential or still not registered
+                data: null
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 405
+                message: This method is not allowed
+                data: null
+        '500': 
+          description: Internal server error
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 500
+                message: "failed to create session cookie"
+                data: null
+  /trialclass:
+    delete:
+      summary: Delete a selected trial class requested
+      description: Returns a deleted trial class details
+      operationId: DeleteTrial
+      tags:
+        - Trial
+      parameters:
+        - in: query
+          name: trial_id
+          required: true
+          schema: 
+            type: string
+            example: 84adecc2-b204-4a27-ae5a-98660b5d08ea
+      responses:
+        '200':
+          description: Succesful delete a selected trial class.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 200
+                message: Successful delete the trial session
+                data: 7f6d5644-4675-4816-b0d8-4ec30d2d0fb7
+            
+        '404':
+          description: Selected trial class not found to be deleted.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 404
+                message: The trial class is not found to be deleted
+                data: null
+        '405':
+          description: Method not allowed.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 405
+                message: This method is not allowed
+                data: null
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 500
+                message: Failed to delete the data"
+                data: null
+    post:
+      summary: Create a new trial class request
+      description: Returns a booked trial class details
+      operationId: NewTrial
+      tags:
+        - Trial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTrial'
+      responses:
+        '201':
+          description: Successful create a trial class request
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example: 
+                Status: 201
+                message: Trial has been booked, let us reach you directly for the update
+                data:
+                  trial_id: c2b4bf12-9696-4c2e-805c-33db670ab111
+                  parent:
+                    name: Julian
+                    phone: "+128739901"
+                    email: juliaschmidt@gmail.com
+                  student:
+                    name: Christian
+                    age: 5
+                    country: Indonesia
+                    exp: '0'
+                  course: roblox
+                  note: He is a moody boy
+                  created_at: '2024-11-11T14:00:10.855074691+07:00'
+                  updated_at: '2024-11-11T14:00:10.855074739+07:00'
+        '405':
+          description: Method not allowed.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 405
+                message: This method is not allowed
+                data: null
+        '500': 
+          description: Internal server error
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 500
+                message: Failed to add a new trial session
+                data: null
+    get:
+      summary: Show all registered booked trial session
+      description: Return all registered booked trial session
+      operationId: ShowTrial
+      tags:
+        - Trial
+      responses:
+        '200':
+          description: Success to get all the trial data
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example: 
+                status: 200
+                message: Successful to get all of the trial data
+                data:
+                  $ref: '#/components/schemas/Trial'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example: 
+                status: 500
+                message: Failed to show the trial list
+                data: null
+  /users:
+    get:
+      summary: Show all registered account
+      description: Returns registered account list
+      operationId: ShowAccount
+      tags:
+        - Users
+      security:
+        - cookie: []
+      
+      responses: 
+        '200':
+          description: Successful get all registered accounts
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 200
+                message: Success to get all of the users data
+                data: 
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/User'
+
+        '405':
+          description: Method not allowed.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 405
+                message: This method is not allowed
+                data: null
+
+        '500':
+          description: Internal server error
+        
+
+
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 500
+        message:
+          type: string
+          example: Internal server error
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - $ref: '#/components/schemas/Trial'
+    
+    LoginUser:
+      type: object
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          example: admin
+    #TRIAL 
+    NewTrial: 
+      type: object
+      properties:
+        parent: 
+          $ref: '#/components/schemas/Trial/properties/parent'
+        student:
+          $ref: '#/components/schemas/Trial/properties/student'
+        course:
+          $ref: '#/components/schemas/Trial/properties/course'
+        note:
+          $ref: '#/components/schemas/Trial/properties/note'
+       
+    Trial: 
+      type: object
+      properties:
+        trial_id: 
+          type: string
+          example: 7f6d5644-4675-4816-b0d8-4ec30d2d0fb7
+        parent: 
+          type: object
+          properties:
+            name:
+              type: string
+              example: Jonathan
+            phone:
+              type: string
+              example: +101234567890
+            email:
+              type: string
+              example: jonathan@gmail.com
+        student:            
+          type: object
+          properties:
+            name:
+              type: string
+              example: Jonathan Jr.
+            age: 
+              type: integer
+              example: 0
+            country: 
+              type: string
+              example: England
+            exp: 
+              type: string
+              enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              example: 3
+        course: 
+          type: string
+          enum:
+            - roblox
+            - c++
+            - c#
+            - java 
+          example: roblox
+        note: 
+          type: string
+          example: He is a moody boy
+        created_at: 
+          type: string
+          format: date-time
+          example: 2024-11-11T11:08:13.677770027+07:00
+        updated_at:
+          type: string
+          format: date-time
+          example: 2024-11-11T11:08:13.677770027+07:00
+
+    User: 
+      type: object
+      properties:
+        user_id: 
+          type: string
+          example: gCUw1XE95u
+        username: 
+          type: string
+          example: admin
+        password: 
+          type: string
+          example: $2a$10$cguIrxI2EzYPTCM/UHidJuHLCMYulhaAR81xtwo2slrqRGfOTRzyW
+        role: 
+          type: string
+          example: admin
+        created_at:
+          type: string
+          format: date-time
+          example: 2024-11-06T09:54:52.617Z
+        updated_at:
+          type: string
+          format: date-time
+          example: 2024-11-06T09:54:52.617Z

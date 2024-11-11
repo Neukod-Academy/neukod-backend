@@ -2,6 +2,13 @@ package models
 
 import "time"
 
+var StudentExperience = []string{
+	"0",
+	"1",
+	"2",
+	"3",
+}
+
 type Student struct {
 	StudentId      string          `json:"id" bson:"id"`
 	Name           string          `json:"name" bson:"name"`
@@ -27,7 +34,7 @@ type StudentTrial struct {
 	Name       string `json:"name" bson:"name"`
 	Age        uint8  `json:"age" bson:"age"`
 	Country    string `json:"country" bson:"country"`
-	Experience uint8  `json:"exp" bson:"exp"`
+	Experience string `json:"exp" bson:"exp"`
 }
 
 type Parent struct {

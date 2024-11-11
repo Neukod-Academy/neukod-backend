@@ -10,9 +10,9 @@ import (
 //HTTP
 
 type HttpResponseBody struct {
-	Status  int
-	Message interface{}
-	Data    interface{}
+	Status  int         `json:"status"`
+	Message interface{} `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 func (res HttpResponseBody) UpdateHttpResponse(writer http.ResponseWriter) {

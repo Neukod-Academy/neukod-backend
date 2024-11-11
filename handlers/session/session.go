@@ -35,7 +35,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 	db := new(utils.Mongo)
 	if err := db.CreateClient(env.MONGO_URI); err != nil {
-		res.Message = "ERROR: failed to create database client"
+		res.Message = "failed to create database client"
 		res.UpdateHttpResponse(w)
 		return
 	}
@@ -48,14 +48,14 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 			res.UpdateHttpResponse(w)
 			return
 		}
-		res.Message = "ERROR: failed to create database client"
+		res.Message = "failed to create database client"
 		res.UpdateHttpResponse(w)
 		return
 	}
 	log.Println(loginCred.Password)
 	log.Println(stored.Password)
 	if err := bcrypt.CompareHashAndPassword([]byte(stored.Password), []byte(loginCred.Password)); err != nil {
-		res.Message = "ERROR: failed while validating the user password"
+		res.Message = "failed while validating the user password"
 		res.UpdateHttpResponse(w)
 		return
 	}
@@ -64,7 +64,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 	if cookie.Value == "" {
 		newToken, err := middleware.CreateToken(loginCred.Username)
 		if err != nil {
-			res.Message = "ERROR: failed to create session cookie"
+			res.Message = "failed to create session cookie"
 			res.UpdateHttpResponse(w)
 			return
 		}
@@ -78,7 +78,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res.Status = http.StatusCreated
-	res.Message = "Success to create a session"
+	res.Message = "Succesful to create a session"
 	res.UpdateHttpResponse(w)
 }
 
@@ -112,7 +112,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	db := new(utils.Mongo)
 	if err := db.CreateClient(env.MONGO_URI); err != nil {
-		res.Message = "ERROR: failed to create database client"
+		res.Message = "failed to create database client"
 		res.UpdateHttpResponse(w)
 		return
 	}

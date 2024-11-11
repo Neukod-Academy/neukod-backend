@@ -80,12 +80,47 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func ShowTrial(w http.ResponseWriter, r *http.Request) error {
+func ShowTrial(w http.ResponseWriter, r *http.Request) {
+	res := utils.HttpResponseBody{
+		Status:  http.StatusInternalServerError,
+		Message: "Failed to show the trial list",
+		Data:    nil,
+	}
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
+		res.Status = http.StatusMethodNotAllowed
+		res.Message = "Method is not allowed"
+		res.Data = nil
+		res.UpdateHttpResponse(w)
+		return
 	}
 
-	return nil
+	db := utils.Mongo{}
+	if err := db.CreateClient(env.MONGO_URI); err != nil {
+		res.Message = "Failed to create a client to the database"
+		res.Data = nil
+		res.UpdateHttpResponse(w)
+		return
+	}
+
+	col := db.Client.Database("Neukod").Collection("Trial")
+	cursor, err := col.Find(db.Context, bson.M{}, options.Find())
+	if err != nil {
+		res.Message = "Failed to find the data"
+		res.Data = nil
+		res.UpdateHttpResponse(w)
+		return
+	}
+	stored := models.Trial{}
+	if err := cursor.All(db.Context, &stored); err != nil {
+		res.Message = "Failed to find the data"
+		res.Data = nil
+		res.UpdateHttpResponse(w)
+		return
+	}
+	res.Status = http.StatusOK
+	res.Message = "Successful to get all of the trial data"
+	res.Data = stored
+	res.UpdateHttpResponse(w)
 }
 
 func ConfirmTrial(w http.ResponseWriter, r *http.Request) error {
@@ -135,7 +170,7 @@ func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
 		return err
 	} else if delRes.DeletedCount < 1 {
 		res.Status = http.StatusNotFound
-		res.Message = "No document found to be deleted"
+		res.Message = "The trial class is not found to be deleted"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
 		return err

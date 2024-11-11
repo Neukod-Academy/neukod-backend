@@ -17,13 +17,19 @@ import (
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		res := utils.HttpResponseBody{
+			Status:  http.StatusUnauthorized,
+			Message: "Unable to verify the session cookie",
+			Data:    nil,
+		}
 		cookie, err := r.Cookie("Session")
 		if err != nil {
 			if err == http.ErrNoCookie {
-				http.Error(w, "Cookie not found", http.StatusUnauthorized)
+				res.UpdateHttpResponse(w)
 				return
 			} else {
-				http.Error(w, "Unable to retrieving the cookie", http.StatusUnauthorized)
+				res.Message = "Unable to retrieving the cookie"
+				res.UpdateHttpResponse(w)
 				return
 			}
 		}
@@ -31,7 +37,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		tokenString := cookie.Value
 		claims, err := ValidateToken(tokenString)
 		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			res.UpdateHttpResponse(w)
 			return
 		}
 		ctx := context.WithValue(r.Context(), "user", claims)

@@ -39,7 +39,7 @@ func (t *Trial) CheckIfEmpty() []string {
 	if t.Student.Age == 0 {
 		errors = append(errors, "student age is required")
 	}
-	if t.Student.Experience == 0 {
+	if t.Student.Experience == "" {
 		errors = append(errors, "student experience is required")
 	}
 	if t.Course == "" {
