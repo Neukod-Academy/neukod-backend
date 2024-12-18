@@ -1,0 +1,21 @@
+services:
+  loraapp:
+    image: neukod-be:latest
+    build:
+      context: ./
+      dockerfile: dockerfile.dev
+    ports: 
+      - "8002:8000"
+    networks:
+      - neukod
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+    restart: always
+    env_file: .env
+
+networks:
+  neukod:
+    external: true

@@ -22,9 +22,10 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			Message: "Unable to verify the session cookie",
 			Data:    nil,
 		}
-		cookie, err := r.Cookie("Session")
+		cookie, err := r.Cookie("session_id")
 		if err != nil {
 			if err == http.ErrNoCookie {
+				res.Message = "There is no cookie found"
 				res.UpdateHttpResponse(w)
 				return
 			} else {
@@ -48,12 +49,15 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 func getRole(username string) (string, error) {
 	db := new(utils.Mongo)
 	var user models.User
-	db.CreateClient(env.MONGO_URI)
+	if err := db.CreateClient(env.MONGO_URI); err != nil {
+		return "", err
+	}
+	defer db.CloseClientDB()
 	coll := db.Client.Database("Neukod").Collection("Users")
 	if err := coll.FindOne(db.Context, bson.M{"username": username}, options.FindOne()).Decode(&user); err != nil {
 		return "", err
 	}
-	return user.Username, nil
+	return user.Role, nil
 }
 
 func CreateToken(username string) (string, error) {

@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -13,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func NewTrial(w http.ResponseWriter, r *http.Request) error {
+func NewTrial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
@@ -31,13 +30,11 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to add a new trial session"
 		res.UpdateHttpResponse(w)
-		return err
 	}
 	if err := newTrial.CheckIfEmpty(); len(err) != 0 {
 		res.Status = http.StatusBadRequest
 		res.Message = err
 		res.UpdateHttpResponse(w)
-		return fmt.Errorf("some field(s) are not filled yet")
 	}
 
 	isTheCourseAllowed := false
@@ -52,7 +49,6 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusBadRequest
 		res.Message = "This course is still unavailable"
 		res.UpdateHttpResponse(w)
-		return fmt.Errorf(res.Message.(string))
 	}
 
 	db := new(utils.Mongo)
@@ -60,10 +56,9 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to create a client to the database"
 		res.UpdateHttpResponse(w)
-		return fmt.Errorf(res.Message.(string))
 	}
-
 	defer db.CloseClientDB()
+
 	col := db.Client.Database("Neukod").Collection("Trial")
 	newTrial.TrialId = uuid.New().String()
 	newTrial.CreatedAt = time.Now()
@@ -72,12 +67,10 @@ func NewTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to add a new trial session"
 		res.UpdateHttpResponse(w)
-		return fmt.Errorf(res.Message.(string))
 	}
 
 	res.Data = newTrial
 	res.UpdateHttpResponse(w)
-	return nil
 }
 
 func ShowTrial(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +94,7 @@ func ShowTrial(w http.ResponseWriter, r *http.Request) {
 		res.UpdateHttpResponse(w)
 		return
 	}
+	defer db.CloseClientDB()
 
 	col := db.Client.Database("Neukod").Collection("Trial")
 	cursor, err := col.Find(db.Context, bson.M{}, options.Find())
@@ -123,21 +117,19 @@ func ShowTrial(w http.ResponseWriter, r *http.Request) {
 	res.UpdateHttpResponse(w)
 }
 
-func ConfirmTrial(w http.ResponseWriter, r *http.Request) error {
+func ConfirmTrial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
-	return nil
 }
 
-func EditTrial(w http.ResponseWriter, r *http.Request) error {
+func EditTrial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
-	return nil
 }
 
-func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
+func DeleteTrial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
 	}
@@ -156,26 +148,25 @@ func DeleteTrial(w http.ResponseWriter, r *http.Request) error {
 		res.Message = "Failed to connect to the database"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
-		return err
+		return
 	}
+	defer db.CloseClientDB()
 
 	col := db.Client.Database("Neukod").Collection("Trial")
-
 	filter := bson.M{"trial_id": TrialId}
 	if delRes, err := col.DeleteOne(db.Context, filter); err != nil {
 		res.Status = http.StatusInternalServerError
 		res.Message = "Failed to delete the data"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
-		return err
+		return
 	} else if delRes.DeletedCount < 1 {
 		res.Status = http.StatusNotFound
 		res.Message = "The trial class is not found to be deleted"
 		res.Data = TrialId
 		res.UpdateHttpResponse(w)
-		return err
+		return
 	}
 	res.Data = TrialId
 	res.UpdateHttpResponse(w)
-	return nil
 }

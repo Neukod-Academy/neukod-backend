@@ -69,9 +69,10 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cookie = &http.Cookie{
-			Name:     "Session",
+			Name:     "session_id",
 			Value:    newToken,
-			Expires:  time.Now().Add(24 * time.Hour),
+			Path:     "/",
+			Expires:  time.Now().Add(1 * time.Minute),
 			HttpOnly: true,
 		}
 		http.SetCookie(w, cookie)
@@ -85,17 +86,34 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 func DropSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "This method is not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 	res := utils.HttpResponseBody{
 		Status:  http.StatusInternalServerError,
-		Message: "Failed to drop this session",
+		Message: "Failed to create a session",
 		Data:    nil,
 	}
+	_, err := r.Cookie("session_id")
+	if err != nil {
+		res.Message = "No active session found"
+		res.UpdateHttpResponse(w)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+	res.Status = http.StatusOK
+	res.Message = "Succesful to drop a session"
 	res.UpdateHttpResponse(w)
 }
 
 func CreateAccount(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodPost {
 		http.Error(w, "This method is not allowed", http.StatusMethodNotAllowed)
 		return
@@ -107,6 +125,14 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	newUser, err := utils.HttpReqReader[models.User](r)
 	if err != nil {
+		res.UpdateHttpResponse(w)
+		return
+	}
+	AvailRole := map[string]struct{}{
+		"admin":       {},
+		"super_admin": {},
+	}
+	if _, exist := AvailRole[newUser.Role]; !exist {
 		res.UpdateHttpResponse(w)
 		return
 	}
@@ -172,11 +198,14 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	res.UpdateHttpResponse(w)
 }
 
-func ShowAccount(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func ShowAccounts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "This method is not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+	AllowedRole := map[string]struct{}{
+		"admin":       {},
+		"super_admin": {},
 	}
 	userData, ok := r.Context().Value("user").(jwt.MapClaims)
 	if !ok {
@@ -184,11 +213,12 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	role, ok := userData["role"].(string)
+	fmt.Println(role)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
-	} else if role != "admin" {
-		http.Error(w, "Unauthorized: this account is not belong to the authorized role", http.StatusUnauthorized)
+	} else if _, allowed := AllowedRole[role]; !allowed {
+		http.Error(w, "Unauthorized: this action is not belong to the authorized role", http.StatusUnauthorized)
 		return
 	}
 	res := utils.HttpResponseBody{
@@ -219,4 +249,86 @@ func ShowAccount(w http.ResponseWriter, r *http.Request) {
 		res.Data = stored
 		res.UpdateHttpResponse(w)
 	}
+}
+
+func RemoveAccount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
+	}
+	userData, ok := r.Context().Value("user").(jwt.MapClaims)
+	if !ok {
+		http.Error(w, "Failed conversion the claims", http.StatusInternalServerError)
+		return
+	}
+	role, ok := userData["role"].(string)
+	AllowedRole := map[string]struct{}{
+		"admin":       {},
+		"super_admin": {},
+	}
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	} else if _, allowed := AllowedRole[role]; !allowed {
+		http.Error(w, "Unauthorized: this action is not belong to the authorized role", http.StatusUnauthorized)
+		return
+	}
+	res := utils.HttpResponseBody{
+		Status:  http.StatusInternalServerError,
+		Message: "failed to delete an account",
+		Data:    nil,
+	}
+	userId := r.PathValue("id")
+	db := new(utils.Mongo)
+	if err := db.CreateClient(env.MONGO_URI); err != nil {
+		res.Message = "Failed to create the database client"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	defer db.CloseClientDB()
+
+	coll := db.Client.Database("Neukod").Collection("Users")
+	tempColl := db.Client.Database("Neukod").Collection("Users_temp")
+
+	var stored models.User
+	filter := bson.M{
+		"user_id": userId,
+	}
+	err := coll.FindOne(db.Context, filter).Decode(&stored)
+	if err != nil {
+		res.Message = "ERR: Failed to find the user_id for deletion"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	stored.RemovedAt = time.Now()
+	stored.UpdatedAt = time.Now()
+	if _, err := tempColl.InsertOne(db.Context, stored); err != nil {
+		res.Message = "ERR: Failed to move the selected user to temporary database for deletion"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	if _, err := coll.DeleteOne(db.Context, filter); err != nil {
+		res.Message = "ERR: Failed while deleting the data"
+		res.UpdateHttpResponse(w)
+		return
+	}
+	if userData["sub"] == stored.Username {
+		_, err := r.Cookie("session_id")
+		if err != nil {
+			res.Message = "No active session found"
+			res.UpdateHttpResponse(w)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "Session",
+			Value:    "",
+			Path:     "/",
+			Expires:  time.Unix(0, 0),
+			MaxAge:   -1,
+			HttpOnly: true,
+		})
+	}
+	res.Status = http.StatusOK
+	res.Message = "Successful to delete a data"
+	res.Data = stored.Username
+	res.UpdateHttpResponse(w)
 }

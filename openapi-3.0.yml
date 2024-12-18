@@ -37,7 +37,7 @@ paths:
           description: Bad request
         '500':
           description: Internal server error
-  /login:
+  /v1/auth/signin:
     post:
       summary: create a user session to access some protected resources
       description: Returns a session cookie
@@ -59,14 +59,14 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
               example: 
                 status: 201
-                message: Success to create a session
+                message: "Success to create a session"
                 data: null
           headers:
             Set-Cookie:
-              description: Session token cookie
+              description: "Session token cookie"
               schema: 
                 type: string
-                example: Session=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzE0Njc3NzgsImlhdCI6MTczMTI5NDk3OCwiaXNzIjoibmV1a29kLWJhY2tlbmQiLCJyb2xlIjoiYWRtaW4iLCJzdWIiOiJhZG1pbiJ9.EspxECKRA5rySTMMrrCsLMLAN-j5eu-T_-dE-hC2lLM; Expires=Tue, 12 Nov 2024 03:16:18 GMT; HttpOnly
+                example: session_id=abc123; HttpOnly; Secure; Path=/; SameSite=Strict
               required: true
         '404':
           description: The credential is not found
@@ -76,7 +76,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
               example:
                 status: 404
-                message: Unable to find this credential or still not registered
+                message: "Unable to find this credential or still not registered"
                 data: null
         '405':
           description: Method not allowed
@@ -86,7 +86,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
               example:
                 status: 405
-                message: This method is not allowed
+                message: "This method is not allowed"
                 data: null
         '500': 
           description: Internal server error
@@ -98,7 +98,60 @@ paths:
                 status: 500
                 message: "failed to create session cookie"
                 data: null
-  /trialclass:
+  /v1/auth/signout:
+    delete:
+      summary: Remove user token from session_id cookie
+      operationId: DropSession
+      tags:
+        - Session
+      parameters:
+        - name: session_id
+          in: cookie
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful to drop a session
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 200
+                message: "Successful drop a session"
+                data: null
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 401
+                message: "There is no cookie found"
+                data: null
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 405
+                message: "This method is not allowed"
+                data: null
+        '500': 
+          description: Internal server error
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 500
+                message: "failed to create session cookie"
+                data: null
+  /v1/trialclass:
     delete:
       summary: Delete a selected trial class requested
       description: Returns a deleted trial class details
@@ -239,7 +292,7 @@ paths:
                 status: 500
                 message: Failed to show the trial list
                 data: null
-  /users:
+  /v1/users:
     get:
       summary: Show all registered account
       description: Returns registered account list
@@ -263,7 +316,16 @@ paths:
                   type: array
                   items:
                     $ref: '#/components/schemas/User'
-
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 401
+                message: "There is no cookie found"
+                data: null
         '405':
           description: Method not allowed.
           content:
@@ -277,7 +339,72 @@ paths:
 
         '500':
           description: Internal server error
-        
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 500
+                message: "Internal server error message.."
+                data: null
+
+
+  /v1/users/{id}:
+    delete:
+      summary: Delete an account
+      description: Remove a desired account
+      operationId: RemoveAccount
+      tags:
+        - Users
+      parameters:
+        - name: session_id
+          in: cookie
+          required: true
+          schema:
+            type: string
+      
+      responses: 
+        '200':
+          description: Successful get all registered accounts
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 200
+                message: "Successful to delete a user data"
+                data: "adminsu"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 401
+                message: "There is no cookie found"
+                data: null
+        '405':
+          description: Method not allowed.
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 405
+                message: "This method is not allowed"
+                data: null
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                status: 500
+                message: "Internal server error message.."
+                data: null
+
 
 
 components:

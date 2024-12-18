@@ -4,29 +4,17 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Neukod-Academy/neukod-backend/handlers/index"
 	"github.com/Neukod-Academy/neukod-backend/handlers/session"
 	"github.com/Neukod-Academy/neukod-backend/handlers/user"
 	"github.com/Neukod-Academy/neukod-backend/middleware"
 	"github.com/Neukod-Academy/neukod-backend/pkg/env"
-	"github.com/Neukod-Academy/neukod-backend/utils"
 )
 
 func main() {
-
-	http.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method is not allowed", http.StatusMethodNotAllowed)
-		}
-		res := utils.HttpResponseBody{
-			Status:  http.StatusOK,
-			Message: "welcome to the homepage",
-			Data:    nil,
-		}
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("content-type", "application/json")
-		res.UpdateHttpResponse(w)
-	})
-	http.HandleFunc("/v1/login", session.CreateSession)
+	http.HandleFunc("/v1", index.RetreiveHomepage)
+	http.HandleFunc("/v1/auth/signin", session.CreateSession)
+	http.HandleFunc("/v1/auth/signout", middleware.AuthMiddleware(session.DropSession))
 	http.HandleFunc("/v1/trialclass", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
@@ -42,11 +30,12 @@ func main() {
 		case http.MethodPost:
 			session.CreateAccount(w, r)
 		case http.MethodGet:
-			middleware.AuthMiddleware(session.ShowAccount)(w, r)
+			middleware.AuthMiddleware(session.ShowAccounts)(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	http.HandleFunc("/v1/users/{id}", middleware.AuthMiddleware(session.RemoveAccount))
 
 	log.Printf("The server is running at http://localhost:%s", env.LOCAL_PORT)
 	if err := http.ListenAndServe(":"+env.LOCAL_PORT, nil); err != nil {

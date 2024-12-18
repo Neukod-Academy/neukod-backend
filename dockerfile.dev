@@ -1,0 +1,17 @@
+FROM golang:alpine AS builder
+RUN apk update && apk add --no-cache tzdata
+WORKDIR /app
+COPY go.mod go.sum ./
+#for cleaning up and ensuring accuracy before a release or when you've made significant changes.
+# RUN go mod tidy  
+RUN go mod download
+COPY . .
+RUN go build -ldflags '-w -s' -o loraapp
+
+FROM alpine
+RUN apk add --no-cache tzdata
+WORKDIR /app
+COPY --from=builder /app/.env ./
+COPY --from=builder /app/neukod-be ./
+COPY --from=builder /app/openapi /app/openapi
+CMD [ "./neukod-be" ]
